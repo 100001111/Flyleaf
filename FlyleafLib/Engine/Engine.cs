@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 
 using FlyleafLib.MediaPlayer;
 
@@ -323,44 +323,47 @@ public static class Engine
                 {
                     try
                     {
-                        foreach (var player in Players)
+                        lock (Players)
                         {
-                            var isPlaying = player.status == Status.Playing;
-                            /* Every UIRefreshInterval */
-                            var config = player.Config.Player;
-
-                            // Activity Mode Refresh & Hide Mouse Cursor (FullScreen only)
-                            if (player.Activity.mode != player.Activity._Mode)
-                                player.Activity.SetMode();
-
-                            // Buffered Duration Refresh from Demuxer (TBR: RefreshType?)
-                            player.BufferedDuration = player.MainDemuxer.BufferedDuration;
-
-                            // CurTime (PerUIRefreshInterval)
-                            if (isPlaying && config.UICurTime == UIRefreshType.PerUIRefreshInterval)
-                                player.SetCurTime();
-
-                            /* Every Second */
-                            if (curLoop == 0)
+                            foreach (var player in Players)
                             {
-                                // CurTime (PerUISecond)
-                                if (config.UICurTime == UIRefreshType.PerUISecond)
+                                var isPlaying = player.status == Status.Playing;
+                                /* Every UIRefreshInterval */
+                                var config = player.Config.Player;
+
+                                // Activity Mode Refresh & Hide Mouse Cursor (FullScreen only)
+                                if (player.Activity.mode != player.Activity._Mode)
+                                    player.Activity.SetMode();
+
+                                // Buffered Duration Refresh from Demuxer (TBR: RefreshType?)
+                                player.BufferedDuration = player.MainDemuxer.BufferedDuration;
+
+                                // CurTime (PerUIRefreshInterval)
+                                if (isPlaying && config.UICurTime == UIRefreshType.PerUIRefreshInterval)
                                     player.SetCurTime();
 
-                                // Stats Refresh (BitRates / FrameDisplayed / FramesDropped / FPS)
-                                if (config.Stats)
+                                /* Every Second */
+                                if (curLoop == 0)
                                 {
-                                    player.BitRate          = player.BitRate;
-                                    player.Video.BitRate    = player.Video.BitRate;
-                                    player.Audio.BitRate    = player.Audio.BitRate;
+                                    // CurTime (PerUISecond)
+                                    if (config.UICurTime == UIRefreshType.PerUISecond)
+                                        player.SetCurTime();
 
-                                    player.Video.FPSCurrent = player.Video.fpsCurrent;
-
-                                    if (isPlaying) // Otherwise Screamers should fire the last update
+                                    // Stats Refresh (BitRates / FrameDisplayed / FramesDropped / FPS)
+                                    if (config.Stats)
                                     {
-                                        player.Audio.FramesDisplayed= player.Audio.FramesDisplayed;
-                                        player.Audio.FramesDropped  = player.Audio.FramesDropped;
-                                        (player.Video.FramesDisplayed,player.Video.FramesDropped) = player.FramesDisplayedDropped(); // dynamic update to be closer to 'now'
+                                        player.BitRate          = player.BitRate;
+                                        player.Video.BitRate    = player.Video.BitRate;
+                                        player.Audio.BitRate    = player.Audio.BitRate;
+
+                                        player.Video.FPSCurrent = player.Video.fpsCurrent;
+
+                                        if (isPlaying) // Otherwise Screamers should fire the last update
+                                        {
+                                            player.Audio.FramesDisplayed= player.Audio.FramesDisplayed;
+                                            player.Audio.FramesDropped  = player.Audio.FramesDropped;
+                                            (player.Video.FramesDisplayed,player.Video.FramesDropped) = player.FramesDisplayedDropped(); // dynamic update to be closer to 'now'
+                                        }
                                     }
                                 }
                             }

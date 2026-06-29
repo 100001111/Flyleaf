@@ -1,4 +1,4 @@
-﻿using Vortice.Direct3D11;
+using Vortice.Direct3D11;
 
 using ID3D11Texture2D = Vortice.Direct3D11.ID3D11Texture2D;
 
@@ -33,7 +33,7 @@ public unsafe class VideoFrame : FrameBase
         if (Texture != null)
         {
             for (int i = 0; i < Texture.Length; i++)
-                Texture[i].Dispose();
+                Texture[i]?.Dispose();
 
             Texture = null;
         }
@@ -41,7 +41,7 @@ public unsafe class VideoFrame : FrameBase
         if (SRV != null)
         {
             for (int i = 0; i < SRV.Length; i++)
-                SRV[i].Dispose();
+                SRV[i]?.Dispose();
 
             SRV = null;
         }
