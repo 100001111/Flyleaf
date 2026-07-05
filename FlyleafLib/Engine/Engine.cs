@@ -321,55 +321,59 @@ public static class Engine
 
                 void UIAction()
                 {
-                    try
+                    Player[] currentPlayers;
+                    lock (Players)
+                        currentPlayers = Players.ToArray();
+
+                    foreach (var player in currentPlayers)
                     {
-                        lock (Players)
+                        try
                         {
-                            foreach (var player in Players)
+                            if (player.IsDisposed)
+                                continue;
+
+                            var isPlaying = player.status == Status.Playing;
+                            /* Every UIRefreshInterval */
+                            var config = player.Config.Player;
+
+                            // Activity Mode Refresh & Hide Mouse Cursor (FullScreen only)
+                            if (player.Activity.mode != player.Activity._Mode)
+                                player.Activity.SetMode();
+
+                            // Buffered Duration Refresh from Demuxer (TBR: RefreshType?)
+                            player.BufferedDuration = player.MainDemuxer.BufferedDuration;
+
+                            // CurTime (PerUIRefreshInterval)
+                            if (isPlaying && config.UICurTime == UIRefreshType.PerUIRefreshInterval)
+                                player.SetCurTime();
+
+                            /* Every Second */
+                            if (curLoop == 0)
                             {
-                                var isPlaying = player.status == Status.Playing;
-                                /* Every UIRefreshInterval */
-                                var config = player.Config.Player;
-
-                                // Activity Mode Refresh & Hide Mouse Cursor (FullScreen only)
-                                if (player.Activity.mode != player.Activity._Mode)
-                                    player.Activity.SetMode();
-
-                                // Buffered Duration Refresh from Demuxer (TBR: RefreshType?)
-                                player.BufferedDuration = player.MainDemuxer.BufferedDuration;
-
-                                // CurTime (PerUIRefreshInterval)
-                                if (isPlaying && config.UICurTime == UIRefreshType.PerUIRefreshInterval)
+                                // CurTime (PerUISecond)
+                                if (config.UICurTime == UIRefreshType.PerUISecond)
                                     player.SetCurTime();
 
-                                /* Every Second */
-                                if (curLoop == 0)
+                                // Stats Refresh (BitRates / FrameDisplayed / FramesDropped / FPS)
+                                if (config.Stats)
                                 {
-                                    // CurTime (PerUISecond)
-                                    if (config.UICurTime == UIRefreshType.PerUISecond)
-                                        player.SetCurTime();
+                                    player.BitRate          = player.BitRate;
+                                    player.Video.BitRate    = player.Video.BitRate;
+                                    player.Audio.BitRate    = player.Audio.BitRate;
 
-                                    // Stats Refresh (BitRates / FrameDisplayed / FramesDropped / FPS)
-                                    if (config.Stats)
+                                    player.Video.FPSCurrent = player.Video.fpsCurrent;
+
+                                    if (isPlaying) // Otherwise Screamers should fire the last update
                                     {
-                                        player.BitRate          = player.BitRate;
-                                        player.Video.BitRate    = player.Video.BitRate;
-                                        player.Audio.BitRate    = player.Audio.BitRate;
-
-                                        player.Video.FPSCurrent = player.Video.fpsCurrent;
-
-                                        if (isPlaying) // Otherwise Screamers should fire the last update
-                                        {
-                                            player.Audio.FramesDisplayed= player.Audio.FramesDisplayed;
-                                            player.Audio.FramesDropped  = player.Audio.FramesDropped;
-                                            (player.Video.FramesDisplayed,player.Video.FramesDropped) = player.FramesDisplayedDropped(); // dynamic update to be closer to 'now'
-                                        }
+                                        player.Audio.FramesDisplayed= player.Audio.FramesDisplayed;
+                                        player.Audio.FramesDropped  = player.Audio.FramesDropped;
+                                        (player.Video.FramesDisplayed,player.Video.FramesDropped) = player.FramesDisplayedDropped(); // dynamic update to be closer to 'now'
                                     }
                                 }
                             }
                         }
+                        catch { }
                     }
-                    catch { }
                 }
 
                 UI(UIAction);
